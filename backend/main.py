@@ -6,6 +6,7 @@ import mediapipe as mp
 from groq import Groq
 from dotenv import load_dotenv
 import os
+import json
 
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -14,7 +15,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -93,34 +94,31 @@ async def workout_plan(data: dict):
     weight = data.get("weight", 70)
 
     prompt = f"""You are an expert fitness trainer. Create a workout plan for today.
+User: {name}, Goal: {goal}, Level: {level}, Weight: {weight}kg
+Return ONLY valid JSON, no extra text:
+{{"day":"Push Day","exercises":[{{"name":"Bench Press","sets":3,"reps":"8-10","rest":"60 sec","tip":"Keep back flat"}}],"duration":"45 minutes","calories":"300-400 kcal"}}"""
 
-User Profile:
-- Name: {name}
-- Goal: {goal}
-- Level: {level}
-- Weight: {weight} kg
-
-Return ONLY a JSON object like this, no extra text:
-{{
-  "day": "Push Day",
-  "exercises": [
-    {{"name": "Bench Press", "sets": 3, "reps": "8-10", "rest": "60 sec", "tip": "Keep back flat"}},
-    {{"name": "Push Ups", "sets": 3, "reps": "12-15", "rest": "45 sec", "tip": "Full range of motion"}}
-  ],
-  "duration": "45 minutes",
-  "calories": "300-400 kcal"
-}}"""
-
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=800
-    )
-
-    import json
-    text = response.choices[0].message.content.strip()
-    text = text.replace("```json", "").replace("```", "").strip()
-    plan = json.loads(text)
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=800
+        )
+        text = response.choices[0].message.content.strip()
+        text = text.replace("```json", "").replace("```", "").strip()
+        plan = json.loads(text)
+    except:
+        plan = {
+            "day": "Push Day",
+            "exercises": [
+                {"name": "Bench Press", "sets": 3, "reps": "8-10", "rest": "60 sec", "tip": "Keep back flat"},
+                {"name": "Push Ups", "sets": 3, "reps": "12-15", "rest": "45 sec", "tip": "Full range of motion"},
+                {"name": "Shoulder Press", "sets": 3, "reps": "10-12", "rest": "60 sec", "tip": "Control the weight"},
+                {"name": "Tricep Dips", "sets": 3, "reps": "12-15", "rest": "45 sec", "tip": "Elbows close to body"}
+            ],
+            "duration": "45 minutes",
+            "calories": "300-400 kcal"
+        }
     return plan
 
 @app.post("/diet-plan")
@@ -131,33 +129,28 @@ async def diet_plan(data: dict):
     level = data.get("level", "Beginner")
 
     prompt = f"""You are an expert Indian nutritionist. Create a meal plan for today.
+Goal: {goal}, Weight: {weight}kg, Diet: {diet}, Level: {level}
+Return ONLY valid JSON, no extra text:
+{{"calories":"2200 kcal","protein":"120g","meals":[{{"time":"8:00 AM","meal":"Breakfast","food":"4 eggs + 2 roti","calories":"450 kcal"}}]}}"""
 
-User Profile:
-- Goal: {goal}
-- Weight: {weight} kg
-- Diet: {diet}
-- Activity Level: {level}
-
-Return ONLY a JSON object like this, no extra text:
-{{
-  "calories": "2200 kcal",
-  "protein": "120g",
-  "meals": [
-    {{"time": "8:00 AM", "meal": "Breakfast", "food": "4 eggs + 2 roti + chai", "calories": "450 kcal"}},
-    {{"time": "1:00 PM", "meal": "Lunch", "food": "Dal chawal + paneer sabzi", "calories": "600 kcal"}},
-    {{"time": "4:00 PM", "meal": "Pre-Workout", "food": "Banana + peanut butter", "calories": "250 kcal"}},
-    {{"time": "8:00 PM", "meal": "Dinner", "food": "Roti + sabzi + curd", "calories": "500 kcal"}}
-  ]
-}}"""
-
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=800
-    )
-
-    import json
-    text = response.choices[0].message.content.strip()
-    text = text.replace("```json", "").replace("```", "").strip()
-    plan = json.loads(text)
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=800
+        )
+        text = response.choices[0].message.content.strip()
+        text = text.replace("```json", "").replace("```", "").strip()
+        plan = json.loads(text)
+    except:
+        plan = {
+            "calories": "2200 kcal",
+            "protein": "120g",
+            "meals": [
+                {"time": "8:00 AM", "meal": "Breakfast", "food": "4 ande + 2 roti + chai", "calories": "450 kcal"},
+                {"time": "1:00 PM", "meal": "Lunch", "food": "Dal chawal + paneer sabzi", "calories": "600 kcal"},
+                {"time": "4:00 PM", "meal": "Pre-Workout", "food": "Banana + peanut butter", "calories": "250 kcal"},
+                {"time": "8:00 PM", "meal": "Dinner", "food": "Roti + sabzi + curd", "calories": "500 kcal"}
+            ]
+        }
     return plan
