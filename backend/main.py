@@ -154,3 +154,64 @@ Return ONLY valid JSON, no extra text:
             ]
         }
     return plan
+@app.post("/count-rep")
+async def count_rep(file: UploadFile = File(...), exercise: str = "squat"):
+    contents = await file.read()
+    nparr = np.frombuffer(contents, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    BaseOptions = mp.tasks.BaseOptions
+    PoseLandmarker = mp.tasks.vision.PoseLandmarker
+    PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
+    VisionRunningMode = mp.tasks.vision.RunningMode
+
+    options = PoseLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path='pose_landmarker.task'),
+        running_mode=VisionRunningMode.IMAGE
+    )
+
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=img_rgb)
+
+    with PoseLandmarker.create_from_options(options) as landmarker:
+        result = landmarker.detect(mp_image)
+
+    if not result.pose_landmarks or len(result.pose_landmarks) == 0:
+        return {"detected": False, "stage": "", "feedback": "Body detect nahi hui"}
+
+    landmarks = result.pose_landmarks[0]
+
+    if exercise == "squat":
+        hip   = [landmarks[23].x, landmarks[23].y]
+        knee  = [landmarks[25].x, landmarks[25].y]
+        ankle = [landmarks[27].x, landmarks[27].y]
+        angle = calculate_angle(hip, knee, ankle)
+        stage = "down" if angle < 120 else "up"
+        feedback = f"Knee angle: {round(angle, 1)}° — {'Squat depth achha hai!' if angle < 120 else 'Neeche jao'}"
+
+    elif exercise == "pushup":
+        shoulder = [landmarks[11].x, landmarks[11].y]
+        elbow    = [landmarks[13].x, landmarks[13].y]
+        wrist    = [landmarks[15].x, landmarks[15].y]
+        angle = calculate_angle(shoulder, elbow, wrist)
+        stage = "down" if angle < 90 else "up"
+        feedback = f"Elbow angle: {round(angle, 1)}° — {'Good depth!' if angle < 90 else 'Neeche jao'}"
+
+    elif exercise == "curl":
+        shoulder = [landmarks[11].x, landmarks[11].y]
+        elbow    = [landmarks[13].x, landmarks[13].y]
+        wrist    = [landmarks[15].x, landmarks[15].y]
+        angle = calculate_angle(shoulder, elbow, wrist)
+        stage = "up" if angle < 50 else "down"
+        feedback = f"Curl angle: {round(angle, 1)}° — {'Full curl!' if angle < 50 else 'Curl karo'}"
+
+    else:
+        stage = "up"
+        feedback = "Exercise detect ho rahi hai"
+
+    return {
+        "detected": True,
+        "stage": stage,
+        "angle": round(angle, 1),
+        "feedback": feedback
+    }
