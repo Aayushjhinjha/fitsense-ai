@@ -4,6 +4,7 @@ import QREntry from './QREntry';
 import FaceEntry from './FaceEntry';
 import FeesManager from './FeesManager';
 import OwnerDashboard from './OwnerDashboard';
+import SalesAgent from './SalesAgent';
 import Onboarding from './Onboarding';
 
 function App() {
@@ -178,6 +179,8 @@ function App() {
 <FeesManager user={user} />
 {/* Owner Dashboard */}
 <OwnerDashboard user={user} />
+{/* Sales Agent */}
+<SalesAgent user={user} />
         {/* Form Checker */}
         <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: '20px' }}>
           <h2 style={{ color: '#2d6a4f', margin: '0 0 4px', fontSize: '18px' }}>AI Form Checker</h2>

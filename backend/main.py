@@ -215,3 +215,53 @@ async def count_rep(file: UploadFile = File(...), exercise: str = "squat"):
         "angle": round(angle, 1),
         "feedback": feedback
     }
+@app.post("/sales-agent")
+async def sales_agent(data: dict):
+    message = data.get("message", "")
+    history = data.get("history", [])
+
+    system_prompt = """You are a friendly AI sales agent for FitSense AI gym. 
+Your job is to help potential members join the gym and answer questions.
+
+Gym Details:
+- Monthly Plan: Rs. 1500/month
+- Quarterly Plan: Rs. 3500 (save Rs. 1000)
+- Half Yearly: Rs. 6000 (save Rs. 3000)  
+- Annual Plan: Rs. 10000 (save Rs. 8000)
+- Timing: 5 AM to 11 PM, 7 days a week
+- Facilities: Weights, Cardio, Yoga, Personal Training, Locker Room
+- Free trial: 1 day free trial available
+- Location: Available on request
+
+Rules:
+1. Always be friendly and helpful
+2. Respond in the same language as the user (Hindi or English)
+3. If user seems interested, ask for their name and phone number
+4. Keep responses short and conversational
+5. If user gives name and phone, say lead has been captured and owner will call
+6. Use emojis occasionally to be friendly
+
+If user provides their name AND phone number, include "LEAD_CAPTURED" at the end of your response."""
+
+    messages_list = [{"role": "system", "content": system_prompt}]
+    for h in history[-10:]:
+        messages_list.append({"role": h["role"], "content": h["content"]})
+    messages_list.append({"role": "user", "content": message})
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages_list,
+            max_tokens=300
+        )
+        reply = response.choices[0].message.content.strip()
+        lead_captured = "LEAD_CAPTURED" in reply
+        reply = reply.replace("LEAD_CAPTURED", "").strip()
+    except:
+        reply = "Sorry, abhi AI service unavailable hai. Please thodi der baad try karo."
+        lead_captured = False
+
+    return {
+        "reply": reply,
+        "lead_captured": lead_captured
+    }
