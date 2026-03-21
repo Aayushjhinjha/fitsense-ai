@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import RepCounter from './RepCounter';
 import QREntry from './QREntry';
 import FaceEntry from './FaceEntry';
+import FeesManager from './FeesManager';
 import Onboarding from './Onboarding';
 
 function App() {
@@ -172,6 +173,8 @@ function App() {
 <QREntry user={user} />
 {/* Face Entry */}
 <FaceEntry user={user} />
+{/* Fees Manager */}
+<FeesManager user={user} />
         {/* Form Checker */}
         <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: '20px' }}>
           <h2 style={{ color: '#2d6a4f', margin: '0 0 4px', fontSize: '18px' }}>AI Form Checker</h2>
